@@ -136,23 +136,6 @@ end
 -(::InfiniteCardinal) = -∞
 -(x::Integer, ::InfiniteCardinal) = x - ∞
 
-for op in (:+,)
-    for Typ in (Number, Complex{Bool}, Rational, Complex)
-        @eval begin
-            $op(x::$Typ, ::InfiniteCardinal) = $op(x, ∞)
-            $op(::InfiniteCardinal, x::$Typ) = $op(∞, x)
-        end
-    end
-    @eval begin
-        $op(x::RealInfinity, ::InfiniteCardinal) = $op(x, ∞)
-        $op(::InfiniteCardinal, x::RealInfinity) = $op(∞, x)
-        $op(::Infinity, ::InfiniteCardinal) = $op(∞, ∞)
-        $op(::InfiniteCardinal, ::Infinity) = $op(∞, ∞)
-        $op(x::ComplexInfinity, ::InfiniteCardinal) = $op(x, ∞)
-        $op(::InfiniteCardinal, x::ComplexInfinity) = $op(∞, x)
-    end
-end
-
 for OP in (:fld,:cld,:div)
     for Typ in (Real, Rational)
         @eval begin

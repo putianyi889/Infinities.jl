@@ -27,10 +27,8 @@ end
 
 for Typ in (Number, Complex, AbstractIrrational, BigFloat, ComplexInfinity, BigInt, Rational)
     @eval begin
-        ==(x::Infinity, y::$Typ) = isinf(y) && angle(y) == angle(x)
         ==(x::RealInfinity, y::$Typ) = isinf(y) && angle(y) == angle(x)
         ==(y::$Typ, x::RealInfinity) = x == y
-        ==(y::$Typ, x::Infinity) = x == y
         ==(::InfiniteCardinal, y::$Typ) = ∞ == y
         ==(x::$Typ, ::InfiniteCardinal) = x == ∞
     end
@@ -50,4 +48,45 @@ for T1 in RealInfinityList
             -(x::$T2, y::$T1) = x + (-y)
         end
     end
+end
+
+
+promote_rule(::Type{<:Infinity}, ::Type{<:Real}) = ExtendedReal
+promote_rule(::Type{<:InfiniteCardinal}, ::Type{<:ExtendedReal}) = ExtendedReal
+promote_rule(::Type{<:InfiniteCardinal}, ::Type{<:Real}) = ExtendedReal
+Infinity(::InfiniteCardinal) = ∞
+function ExtendedReal(x::Real)
+    if isinf(x)
+        RealInfinity(signbit(x))
+    elseif isnan(x)
+        throw(ArgumentError("Unable to convert $x to $ExtendedReal."))
+    else
+        RealFinite(x)
+    end
+end
+ExtendedReal(x::Infinity) = ∞
+ExtendedReal(x::RealInfinity) = x
+ExtendedReal(x::InfiniteCardinal) = ∞
++(::RealFinite, ::Infinity) = ∞
++(::Infinity, ::RealFinite) = ∞
+function *(::Infinity, x::RealFinite)
+    if iszero(x)
+        throw(ArgumentError("Unable to calculate $(x.value) * ∞"))
+    else
+        RealInfinity(signbit(x))
+    end
+end
+*(x::RealFinite, y::Infinity) = y * x
+<(::RealFinite, ::Infinity) = true
+<(::Infinity, ::RealFinite) = false
+<(::Infinity, ::Infinity) = false
+≤(::RealFinite, ::Infinity) = true
+≤(::Infinity, ::RealFinite) = false
+≤(::Infinity, ::Infinity) = true
+==(::RealFinite, ::Infinity) = false
+max(::RealFinite, ::Infinity) = ∞
+min(x::RealFinite, ::Infinity) = x.value
+
+for op in (:(==), :max, :min)
+    @eval $op(x::Infinity, y::RealFinite) = $op(y, x)
 end

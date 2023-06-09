@@ -2,11 +2,14 @@ module Infinities
 
 import Base: angle, isone, iszero, isinf, isfinite, abs, one, oneunit, zero, isless,
                 +, -, *, ==, <, ≤, >, ≥, fld, cld, div, mod, min, max, sign, signbit,
-                string, show, promote_rule, convert, getindex
+                string, show, promote_rule, convert, getindex, hash
 
 export ∞,  ℵ₀,  ℵ₁, RealInfinity, ComplexInfinity, InfiniteCardinal, NotANumber
 # The following is commented out for now to avoid conflicts with Infinity.jl
 # export Infinity
+export RealFinite, RealPos, RealNeg, RealZero
+
+abstract type ExtendedReal <: Real end
 
 """
 NotANumber()
@@ -14,14 +17,21 @@ NotANumber()
 represents something that is undefined, for example, `0 * ∞`.
 """
 struct NotANumber <: Number end
-
+struct RealFinite{T<:Real} <:ExtendedReal
+    value::T
+end
+iszero(x::RealFinite) = iszero(x.value)
+signbit(x::RealFinite) = signbit(x.value)
+hash(x::RealFinite) = hash(x.value)
+promote_rule(::Type{RealFinite{T}}, ::Type{S}) where {T, S<:Real} = promote_type(T, S)
+(::Type{T})(x::RealFinite) where T<:Real = T(x.value)
 
 """
    Infinity()
 
 represents the positive real infinite.
 """
-struct Infinity <: Real end
+struct Infinity <: ExtendedReal end
 
 const ∞ = Infinity()
 
@@ -46,40 +56,11 @@ zero(::Infinity) = 0
 isinf(::Infinity) = true
 isfinite(::Infinity) = false
 
-==(x::Infinity, y::Infinity) = true
-
-isless(x::Infinity, y::Infinity) = false
-isless(x::Real, y::Infinity) = isfinite(x) || signbit(x)
-isless(x::AbstractFloat, y::Infinity) = isless(x, convert(typeof(x), y))
-isless(x::Infinity, y::AbstractFloat) = false
-isless(x::Infinity, y::Real) = false
-
-≤(::Infinity, ::Infinity) = true
-<(::Infinity, ::Infinity) = false
-
-<(x::Real, ::Infinity) = isfinite(x) || signbit(x)
-≤(::Real, ::Infinity) = true
-<(::Infinity, ::Real) = false
-≤(::Infinity, y::Real) = isinf(y) && !signbit(y)
-
-min(::Infinity, ::Infinity) = ∞
-max(::Infinity, ::Infinity) = ∞
-min(x::Real, ::Infinity) = x
-max(::Real, ::Infinity) = ∞
-min(::Infinity, x::Real) = x
-max(::Infinity, ::Real) = ∞
-
 +(::Infinity, ::Infinity) = ∞
-+(::Number, y::Infinity) = ∞
-+(::Infinity, ::Number) = ∞
-
-+(::Integer, y::Infinity) = ∞
-+(::Infinity, ::Integer) = ∞
 
 # ⊻ is xor
 *(::Infinity) = ∞
 *(::Infinity, ::Infinity) = ∞
-
 
 
 for OP in (:fld,:cld,:div)
@@ -101,7 +82,7 @@ end
 
 
 
-struct RealInfinity <: Real
+struct RealInfinity <: ExtendedReal
     signbit::Bool
 end
 
